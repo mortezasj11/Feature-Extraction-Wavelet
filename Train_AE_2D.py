@@ -15,13 +15,19 @@ from torch.utils.tensorboard import SummaryWriter ### RUN pip install tensorboar
 from torch.utils.data import DataLoader, random_split
 
 
+mode = 'regular' # 'wavelet'
+
+
+
+
+
 # train_dataset
-dataset_train = Dataset_CTLungSeg('/Data/MoriRichardProject/TrainValTest/CT_Tr', '/Data/MoriRichardProject/TrainValTest/Label_Tr', isTrain=True)
+dataset_train = Dataset_CTLungSeg('/Data/MoriRichardProject/TrainValTest/CT_Tr', '/Data/MoriRichardProject/TrainValTest/Label_Tr', isTrain=True, mode=mode)
 n_train = len(dataset_train)
 dataset_train, _ = random_split(dataset_train, [n_train, 0]) # maybe is not needed
 train_loader = DataLoader(dataset_train, batch_size=16, shuffle=True, num_workers=8, pin_memory=True)
 # val_dataset
-dataset_val = Dataset_CTLungSeg('/Data/MoriRichardProject/TrainValTest/CT_Va', '/Data/MoriRichardProject/TrainValTest/Label_Va', isTrain=False)
+dataset_val = Dataset_CTLungSeg('/Data/MoriRichardProject/TrainValTest/CT_Va', '/Data/MoriRichardProject/TrainValTest/Label_Va', isTrain=False, mode=mode)
 n_val = len(dataset_val)
 print('n_train, n_val', n_train, n_val)
 dataset_val, _ = random_split(dataset_val, [n_val, 0]) # maybe is not needed
@@ -37,7 +43,7 @@ else:
 #device = torch.device('cpu')
 # model
 
-model = AE(in_channel = 1, out_channel =1).to(device)
+model = AE(in_channel = 1, out_channel =1).to(device) if mode=='regular' else AE(in_channel = 4, out_channel =4).to(device)
 
 # criterion
 criterion = torch.nn.MSELoss()        #criterion = torch.nn.CrossEntropyLoss()               #criterion = DiceLoss(predict,target)                #criterion = torch.nn.L1Loss()

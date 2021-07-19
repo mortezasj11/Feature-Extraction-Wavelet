@@ -13,10 +13,13 @@ from torchvision import transforms
 import torchvision.transforms as tt
 import torch.nn as nn
 import torch.nn.functional as F
+import pywt
 
 
 class Dataset_CTLungSeg(Dataset):
-    def __init__(self, CT_dir, Lung_dir, isTrain = True): 
+    def __init__(self, CT_dir, Lung_dir, isTrain = True, mode='regular', OnlyLung = False): 
+        self.OnlyLung = OnlyLung
+        self.mode = mode.lower()
         self.isTrain = isTrain
         self.CT_dir = CT_dir
         self.Lung_dir = Lung_dir
@@ -40,6 +43,21 @@ class Dataset_CTLungSeg(Dataset):
         if len(im.shape) == 2:
             im = np.expand_dims(im, axis=0)
         return im
+
+    @classmethod
+    def Wave(cls, im, wavelet='bior1.3', level=1, mode='zero'):
+        LL, (LH, HL, HH) = pywt.dwt2(im, wavelet, mode )
+        LL, (LH, HL, HH) = LL[1:-1,1:-1], (LH[1:-1,1:-1], HL[1:-1,1:-1], HH[1:-1,1:-1]) 
+        return LL, (LH, HL, HH)
+
+    @classmethod
+    def iWave(cls, coeff, wavelet='bior1.3', level=1, mode='zero'):
+        LL, (LH, HL, HH) = coeff
+        LL, (LH, HL, HH) = pywt.pad(LL,1,'zero'),  (pywt.pad(LH,1,'zero'),pywt.pad(HL,1,'zero'),pywt.pad(HH,1,'zero'))
+        im = pywt.idwt2((LL, (LH, HL, HH)), 'bior1.3') 
+        return im
+
+
 
 
     def transform(self, CT, Label):
@@ -93,17 +111,24 @@ class Dataset_CTLungSeg(Dataset):
         CT = self.preprocessCT(CT)
         Lung = self.preprocessLabel(Lung)
 
+
         # Data augmentation
         if self.isTrain:
             CT, Lung = self.transform(  torch.from_numpy(CT), torch.from_numpy(Lung)  )
+            if self.mode =='wavelet' and self.OnlyLung ==False:               
+                CT, Lung = self.Wave( CT, wavelet='bior1.3', level=1, mode='zero'), self.Wave( Lung, wavelet='bior1.3', level=1, mode='zero')
+            if self.mode =='wavelet' and self.OnlyLung ==True: 
+                CT, Lung = self.Wave( CT*Lung, wavelet='bior1.3', level=1, mode='zero'), self.Wave( CT*Lung, wavelet='bior1.3', level=1, mode='zero')
             CT, Lung = CT.type(torch.FloatTensor), Lung.type(torch.FloatTensor)
         else:
             CT, Lung = torch.from_numpy(CT), torch.from_numpy(Lung)
+            if self.mode =='wavelet' and self.OnlyLung ==False:
+                CT, Lung = self.Wave( CT, wavelet='bior1.3', level=1, mode='zero'), self.Wave( Lung, wavelet='bior1.3', level=1, mode='zero')  
+            if self.mode =='wavelet' and self.OnlyLung ==True:     
+                CT, Lung = self.Wave( CT*Lung, wavelet='bior1.3', level=1, mode='zero'), self.Wave( CT*Lung, wavelet='bior1.3', level=1, mode='zero')    
             CT, Lung = CT.type(torch.FloatTensor), Lung.type(torch.FloatTensor)
+        if self.mode !='wavelet' and self.OnlyLung ==True:
+            CT = torch.matmul(CT, Lung)
 
-        # Denoising
-        #Lung = self.GaussianTorch(Lung)   
-
-        #CT = torch.matmul(CT, Lung)
         return CT, CT
-        #return {'CT': CT}
+
