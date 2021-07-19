@@ -2,7 +2,6 @@
 
 ```bash 
 docker build -t ctpet .
-docker build -t pix2pix .
 ```
 
 ## Tensorboard
