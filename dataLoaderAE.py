@@ -16,6 +16,7 @@ import torch.nn.functional as F
 import pywt
 
 
+
 class Dataset_CTLungSeg(Dataset):
     def __init__(self, CT_dir, Lung_dir, isTrain = True, mode='regular', OnlyLung = False): 
         self.OnlyLung = OnlyLung
@@ -46,16 +47,24 @@ class Dataset_CTLungSeg(Dataset):
 
     @classmethod
     def Wave(cls, im, wavelet='bior1.3', level=1, mode='zero'):
-        LL, (LH, HL, HH) = pywt.dwt2(im, wavelet, mode )
+        LL, (LH, HL, HH) = pywt.dwt2(im[0,:,:], wavelet, mode )
         LL, (LH, HL, HH) = LL[1:-1,1:-1], (LH[1:-1,1:-1], HL[1:-1,1:-1], HH[1:-1,1:-1]) 
-        return LL, (LH, HL, HH)
+        out = torch.zeros((4,LL.shape[0], LL.shape[1]))
+        out[0,:,:] = torch.from_numpy(LL)
+        out[1,:,:] = torch.from_numpy(LH)
+        out[2,:,:] = torch.from_numpy(HL)
+        out[3,:,:] = torch.from_numpy(HH)
+        return out
 
     @classmethod
-    def iWave(cls, coeff, wavelet='bior1.3', level=1, mode='zero'):
-        LL, (LH, HL, HH) = coeff
-        LL, (LH, HL, HH) = pywt.pad(LL,1,'zero'),  (pywt.pad(LH,1,'zero'),pywt.pad(HL,1,'zero'),pywt.pad(HH,1,'zero'))
-        im = pywt.idwt2((LL, (LH, HL, HH)), 'bior1.3') 
-        return im
+    def iWave(cls, imW, wavelet='bior1.3', level=1, mode='zero'):
+        out = torch.zeros(  (  imW.shape[0] , 1 , imW.shape[2]*2 , imW.shape[3]*2  )  )
+        for i in range(imW.shape[0]):            
+            LL, (LH, HL, HH) = imW[i,0,:,:],(imW[i,1,:,:], imW[i,2,:,:], imW[i,3,:,:])
+            LL, (LH, HL, HH) = pywt.pad(LL,1,'zero'),  (pywt.pad(LH,1,'zero'),pywt.pad(HL,1,'zero'),pywt.pad(HH,1,'zero'))
+            im = pywt.idwt2((LL, (LH, HL, HH)), wavelet) 
+            out[i,0,:,:] = im
+        return out
 
 
 
@@ -130,5 +139,5 @@ class Dataset_CTLungSeg(Dataset):
         if self.mode !='wavelet' and self.OnlyLung ==True:
             CT = torch.matmul(CT, Lung)
 
-        return CT, CT
 
+        return CT, CT

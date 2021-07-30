@@ -65,12 +65,14 @@ class OutConv(nn.Module):
 
     
 class AE(nn.Module):
-    def __init__(self, in_channel, out_channel, bilinear=True):
+    def __init__(self, in_channel, out_channel, bilinear=True, mode='regular'):
         #[32, 38, 45, 54, 64, 76]  #[24, 24, 24, 24, 24, 24, 24]   # #[32, 16, 16, 16, 16, 16, 24]
         #self.channels = [32, 35, 38, 41, 45, 49, 53]#1/20
         #[28, 30, 33, 36, 39, 42, 46]  1/24.3
         #[32, 16, 16, 16, 16, 16, 16]  1/64
-        self.channels = [32, 16, 16, 16, 16, 16, 16]#[28, 30, 33, 36, 39, 42, 46]
+        self.channels = np.array([32, 16, 16, 16, 16, 16, 16])#[28, 30, 33, 36, 39, 42, 46]
+        if mode =='wavelet':
+            self.channels = 4*self.channels
         super(AE, self).__init__()
         self.in_channel = in_channel
         self.out_channel = out_channel
