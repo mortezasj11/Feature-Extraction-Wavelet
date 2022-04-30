@@ -1,5 +1,6 @@
-import torch
+# not completed
 
+import torch
 
 def predict(img,
             model,

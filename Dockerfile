@@ -30,7 +30,7 @@ ENV PATH=$CONDA_PREFIX/bin:$PATH
 # Python packages installation
 ## Common packages
 RUN pip install gpustat==0.6.0 setuptools==45 pytz==2021.1
-RUN pip install numpy==1.16.2 scipy==1.6.0 matplotlib==3.3.2 pandas==1.1.5
+RUN pip install numpy scipy==1.6.0 matplotlib pandas==1.1.5
 RUN pip install scikit-image==0.17.2 opencv-python==4.4.0.44 scikit-learn==0.24.1 deepdish==0.3.6 seaborn==0.11.1
 
 ## Install pytorch
@@ -38,6 +38,7 @@ RUN conda update -n base -c defaults conda
 RUN conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
 RUN pip install tensorboard==2.4.0
 RUN pip install pytorch-msssim
+RUN pip install openpyxl
 
 
 ## Install python packages

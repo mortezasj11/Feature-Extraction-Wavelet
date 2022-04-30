@@ -42,25 +42,28 @@ def SavingAsNpy(images_list,target_list,imageTr_path,maskTr_path, prefix=""):
     for i in range(len(images_list)):
         print(i,'/',len(images_list))
         for j in range(len(images_list[i])):#len(images_list[i]
-            print(i,' / ',j,'/',len(images_list[i]))
-            print(images_list[i][j],'\n',target_list[i][j],'\n')
+            #print(i,' / ',j,'/',len(images_list[i]))
+            #print(images_list[i][j],'\n',target_list[i][j],'\n')
             #print(count)
-            print()
-        
+
+            #print(images_list[i][j])
+            print(images_list[i][j].split('/')[-1][:-4])
+            
+            print
             # load img with all channels
             imgs = scipy.io.loadmat(images_list[i][j])
             imgs_array = np.array(imgs['CT'])
             # load the corresponding nodule segmentation
-            '''
+            
             if 'tumor' in imgs.keys():
-                masks_array = np.array(imgs['tumor'])
+                masks_array_l = np.array(imgs['tumor'])
             else:
                 print('TUMOR1 IS BEING USED')
-                masks_array = np.array(imgs['tumor1'])       
-            '''
+                masks_array_l = np.array(imgs['tumor1'])       
+            
             #load the lung segmentation   
-            masks = scipy.io.loadmat(target_list[i][j])
-            masks_array_l = np.array(masks['lung'])
+            #masks = scipy.io.loadmat(target_list[i][j])
+            #masks_array_l = np.array(masks['lung'])
         
             #Save 10% of patients data in the test files
               
@@ -68,12 +71,12 @@ def SavingAsNpy(images_list,target_list,imageTr_path,maskTr_path, prefix=""):
             image_path  = imageTr_path
             mask_path   = maskTr_path
 
-            dst_img_name = "lu_"+ prefix +'_'+ str(count).zfill(5) + ".nii.gz"
+            dst_img_name = images_list[i][j].split('/')[-1][:-4] + ".nii.gz"
             dst_img_path = os.path.join(image_path, dst_img_name)
             img_nifti = nib.Nifti1Image(imgs_array, np.diag(np.append(imgs['img_resolution'],1.0)))
-            img_nifti.to_filename(dst_img_path)
+            #img_nifti.to_filename(dst_img_path)
 
-            dst_label_name = "lu_"+ prefix +'_'+ str(count).zfill(5) + ".nii.gz"
+            dst_label_name = images_list[i][j].split('/')[-1][:-4] + ".nii.gz"
             dst_mask_path = os.path.join(mask_path, dst_label_name)
             mask_nifti = nib.Nifti1Image(masks_array_l, np.diag(np.append(imgs['img_resolution'],1.0)))
             mask_nifti.to_filename(dst_mask_path)
@@ -86,35 +89,24 @@ def SavingAsNpy(images_list,target_list,imageTr_path,maskTr_path, prefix=""):
 
 if __name__=='__main__':
 
-
-    # Destination directory
-    nnUnet_im_lbl_folder = "/Data/MoriRichardProject/NiftiLungSeg"
-                            
-
-    #if os.path.exists(nnUnet_im_lbl_folder):
-        #shutil.rmtree(nnUnet_im_lbl_folder)
-
-    imageTr_path = os.path.join(nnUnet_im_lbl_folder, "images")
-    os.makedirs(imageTr_path,exist_ok=True)
-
-    maskTr_path = os.path.join(nnUnet_im_lbl_folder, "Lunglabels")
-    os.makedirs(maskTr_path,exist_ok=True)
-
-
-    
     #Getting images_list & target_list
     raw_dot_m_files = '/Data/Lung/'
-
     images_list , target_list = GiveImageAndTargetLists(raw_dot_m_files)
     print("images_list) & len(target_list):",len(images_list),'  &  ' ,len(target_list))
 
 
+    # Destination directory
+    nnUnet_im_lbl_folder = "/Data/MoriRichardProject/NiftiAug2"                       
+    #if os.path.exists(nnUnet_im_lbl_folder):
+        #shutil.rmtree(nnUnet_im_lbl_folder)
+    imageTr_path = os.path.join(nnUnet_im_lbl_folder, "Images_Nifty")
+    os.makedirs(imageTr_path,exist_ok=True)
+    maskTr_path = os.path.join(nnUnet_im_lbl_folder, "Tumorlabels_Nifty")
+    os.makedirs(maskTr_path,exist_ok=True)
     #DO NOT GIVE PREFIX OF "" AND saving_from_number = 0 FOR ALL THE DATA_SETS
     data_set_number = 9
     prefix = "stim"
     saving_from_number = 0
-
-    
     #Loading .m files, saving as nii.gz
     SavingAsNpy(images_list,    target_list,  \
                 imageTr_path,   maskTr_path,  \

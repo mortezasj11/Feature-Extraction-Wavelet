@@ -65,61 +65,59 @@ class OutConv(nn.Module):
 
     
 class AE(nn.Module):
-    def __init__(self, in_channel, out_channel, bilinear=True, mode='regular'):
-        #[32, 38, 45, 54, 64, 76]  #[24, 24, 24, 24, 24, 24, 24]   # #[32, 16, 16, 16, 16, 16, 24]
-        #self.channels = [32, 35, 38, 41, 45, 49, 53]#1/20
-        #[28, 30, 33, 36, 39, 42, 46]  1/24.3
-        #[32, 16, 16, 16, 16, 16, 16]  1/64
-        self.channels = np.array([32, 16, 16, 16, 16, 16, 16])#[28, 30, 33, 36, 39, 42, 46]
-        if mode =='wavelet':
+    def __init__(self, args):
+        #[32, 38, 45, 54, 64, 76]  #[28, 30, 33, 36, 39, 42, 46] #[24, 24, 24, 24, 24, 24, 24]   # #[32, 16, 16, 16, 16, 16, 24] #self.channels = [32, 35, 38, 41, 45, 49, 53]#1/20 #[28, 30, 33, 36, 39, 42, 46]  1/24.3 #[32, 16, 16, 16, 16, 16, 16]  1/64
+        self.model_size = args.model_size
+        self.channels = self.model_size*np.array([32, 16, 16, 16, 16, 16, 16])
+        if args.mode =='wavelet':
             self.channels = 4*self.channels
         super(AE, self).__init__()
-        self.in_channel = in_channel
-        self.out_channel = out_channel
-        self.bilinear = bilinear
+        self.in_channel = args.in_channel
+        self.out_channel = args.out_channel
+        self.num_classes = args.num_classes
 
-        self.inc = DoubleConv(in_channel, self.channels[0])
+        self.inc = DoubleConv(self.in_channel, self.channels[0])
         self.down1 = Down(self.channels[0], self.channels[1])
         self.down2 = Down(self.channels[1], self.channels[2])
         self.down3 = Down(self.channels[2], self.channels[3])
         self.down4 = Down(self.channels[3], self.channels[4])
         self.down5 = Down(self.channels[4], self.channels[5])
         
-        self.up1 = Up(self.channels[5], self.channels[4], bilinear)
-        self.up2 = Up(self.channels[4], self.channels[3], bilinear)
-        self.up3 = Up(self.channels[3], self.channels[2], bilinear)
-        self.up4 = Up(self.channels[2], self.channels[1], bilinear)
-        self.up5 = Up(self.channels[1], self.channels[0], bilinear)
+        self.up1 = Up(self.channels[5], self.channels[4])
+        self.up2 = Up(self.channels[4], self.channels[3])
+        self.up3 = Up(self.channels[3], self.channels[2])
+        self.up4 = Up(self.channels[2], self.channels[1])
+        self.up5 = Up(self.channels[1], self.channels[0])
         
-        self.outc = OutConv(self.channels[0], out_channel)
+        self.outc = OutConv(self.channels[0], self.out_channel)
+
+        self.cat_class = nn.Sequential(
+            nn.Linear(self.model_size*576, 1024), nn.ReLU(),
+            nn.Linear(1024, 512), nn.ReLU(),
+            nn.Linear(512, 128), nn.ReLU(),
+            nn.Linear(128, 32), nn.ReLU(),
+            nn.Linear(32, self.num_classes),
+        )
 
     def forward(self, x):
         x = self.inc(x)     
-        #print(x.shape)
         x = self.down1(x)   
-        #print(x.shape)
         x = self.down2(x)   
-        #print(x.shape)
         x = self.down3(x)   
-        #print(x.shape)
         x = self.down4(x)  
-        #print(x.shape)     
-        x1 = self.down5(x)  
+        x_encoded = self.down5(x)  
         #print(x1.shape)
-        
-        x = self.up1(x1)    
-        #print(x.shape)
+        x = self.up1(x_encoded)    
         x = self.up2(x)     
-        #print(x.shape)
         x = self.up3(x)     
-        #print(x.shape)
         x = self.up4(x)     
-        #print(x.shape)
         x = self.up5(x)     
-        #print(x.shape)
         x = self.outc(x)
-        #print(x.shape)
-        return x, x1
+        #print(x_encoded.shape)
+        x_encoded_flatten =torch.flatten(x_encoded, start_dim=1)
+        label = self.cat_class(x_encoded_flatten)
+
+        return x, label
     
 if __name__=='__main__':
     
