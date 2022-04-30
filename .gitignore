@@ -1,0 +1,6 @@
+
+# exclude everything
+testtt/*
+
+# exception to the rule
+!testtt/needed
